@@ -1,6 +1,7 @@
 from math import floor
 import pandas as pd
 import numpy as np
+import random
 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_auc_score, accuracy_score, f1_score, precision_score
@@ -90,8 +91,11 @@ class Simulate_acceptance_loop():
             self.all_train_X = pd.concat([self.all_train_X, X[accepted]], ignore_index=True)
             self.all_train_y = pd.concat([self.all_train_y, y[accepted]], ignore_index=True)
 
-            self.oracle_all_train_X = pd.concat([self.oracle_all_train_X, X], ignore_index=True)
-            self.oracle_all_train_y = pd.concat([self.oracle_all_train_y, y], ignore_index=True)
+            # 3.2 add same number of points (but random points - so no acceptance bias) to oracle model
+            random.shuffle(accepted)
+
+            self.oracle_all_train_X = pd.concat([self.oracle_all_train_X, X[accepted]], ignore_index=True)
+            self.oracle_all_train_y = pd.concat([self.oracle_all_train_y, y[accepted]], ignore_index=True)
 
             print(f'Itteration: {year}) Accepted: {accepted.count(True)} | Denied: {accepted.count(False)} - New train set size: {self.all_train_X.shape}')
 
