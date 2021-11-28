@@ -7,16 +7,17 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_auc_score, accuracy_score, f1_score, precision_score
 from sklearn.base import clone
 
-import lightgbm as lgbm
+
+
 import matplotlib.pyplot as plt
 
 class Simulate_acceptance_loop():
 
-    def __init__(self, dataset_name, model, model_fit_split, holdout_test_split, n_loops):
+    def __init__(self, dataset_name: str, model, model_fit_split: float, holdout_test_split: float, n_loops: int):
         self.n_loops = n_loops
 
         # load dataset
-        complete_data = pd.read_csv(f'C:/Projects/Information-Systems-Seminar/prepared_data/{dataset_name}.csv', sep=',')
+        complete_data = pd.read_csv(f'C:/Projects/Information-Systems-Seminar/prepared_data/{dataset_name}', sep=',')
         complete_data['BAD'] = np.where(complete_data['BAD'] == 'BAD', 1, 0).astype(np.int64)
 
         obj_cols = complete_data.select_dtypes('object').columns
@@ -51,14 +52,15 @@ class Simulate_acceptance_loop():
         self.oracle_all_train_X = X_model_fit
         self.oracle_all_train_y = y_model_fit
 
-        print(f'''
+        self.info = f'''
         -------------------------------------------------------
         Data SPLIT ({dataset_name}):
         Total rows: {complete_X.shape[0]}, Total columns: {complete_X.shape[1]}
         Used for initial model training:{X_model_fit.shape[0]}\t({round(X_model_fit.shape[0]/complete_X.shape[0], 4)})
         Used for model evaluation:\t{X_holdout.shape[0]}\t({round(X_holdout.shape[0]/complete_X.shape[0], 4)})
         Remaining used for simulation:\t{X_simulation.shape[0]}\t({round(X_simulation.shape[0]/complete_X.shape[0], 4)})
-        ------------------------------------------------------''')
+        ------------------------------------------------------'''
+        #print(self.info)
 
 
     def run(self):
@@ -129,16 +131,16 @@ class Simulate_acceptance_loop():
 
             # 5. train model on all available data to improve
             self.model.fit(self.all_train_X, self.all_train_y)
-
             self.oracle.fit(self.oracle_all_train_X, self.oracle_all_train_y)
 
+            yield year, accepted, self.all_train_X.shape, metrics
 
         return metrics
 
-
+'''
 n_years = 40
 
-sim = Simulate_acceptance_loop("gmsc", lgbm.LGBMClassifier(), 0.0005, 0.1, n_years)
+sim = Simulate_acceptance_loop("homecredit.csv", lgbm.LGBMClassifier(), 0.1, 0.1, n_years)
 results = sim.run()
 
 
@@ -152,5 +154,5 @@ plt.plot(x, results["oracle"]["holdout"]['roc_auc'], label = 'roc_auc-oracle')
 plt.legend()
 plt.show()
 
-
+'''
         
