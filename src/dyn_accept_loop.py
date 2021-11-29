@@ -53,13 +53,12 @@ class Simulate_acceptance_loop():
         self.oracle_all_train_y = y_model_fit
 
         self.info = f'''
-        -------------------------------------------------------
-        Data SPLIT ({dataset_name}):
-        Total rows: {complete_X.shape[0]}, Total columns: {complete_X.shape[1]}
-        Used for initial model training:{X_model_fit.shape[0]}\t({round(X_model_fit.shape[0]/complete_X.shape[0], 4)})
-        Used for model evaluation:\t{X_holdout.shape[0]}\t({round(X_holdout.shape[0]/complete_X.shape[0], 4)})
+        Data SPLIT ({dataset_name}):\n
+        Total rows: {complete_X.shape[0]}, Total columns: {complete_X.shape[1]}\n
+        Used for initial model training:{X_model_fit.shape[0]}\t({round(X_model_fit.shape[0]/complete_X.shape[0], 4)})\n
+        Used for model evaluation:\t{X_holdout.shape[0]}\t({round(X_holdout.shape[0]/complete_X.shape[0], 4)})\n
         Remaining used for simulation:\t{X_simulation.shape[0]}\t({round(X_simulation.shape[0]/complete_X.shape[0], 4)})
-        ------------------------------------------------------'''
+        '''
         #print(self.info)
 
 
@@ -99,7 +98,8 @@ class Simulate_acceptance_loop():
             self.oracle_all_train_X = pd.concat([self.oracle_all_train_X, X[accepted]], ignore_index=True)
             self.oracle_all_train_y = pd.concat([self.oracle_all_train_y, y[accepted]], ignore_index=True)
 
-            print(f'Itteration: {year}) Accepted: {accepted.count(True)} | Denied: {accepted.count(False)} - New train set size: {self.all_train_X.shape}')
+            # verbose
+            # print(f'Itteration: {year}) Accepted: {accepted.count(True)} | Denied: {accepted.count(False)} - New train set size: {self.all_train_X.shape}')
 
             # 4.1 save rolling_metrics for data of that year
             metrics["model"]["rolling"]['roc_auc'].append(roc_auc_score(y, predicted_proba)) #### die dinger hier sind mit falschem threshold berechnet

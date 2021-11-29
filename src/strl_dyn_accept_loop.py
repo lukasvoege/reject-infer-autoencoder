@@ -1,6 +1,7 @@
 import streamlit as st
 import matplotlib.pyplot as plt
 from os import listdir, path
+from PIL import Image
 
 import dyn_accept_loop as dal
 
@@ -11,6 +12,9 @@ datapath = 'C:/Projects/Information-Systems-Seminar/prepared_data/'
 
 st.title('Simulate Dynamic Acceptance Process')
 st.write('Seminar Information Systems - Group C1 - *Bias-Removing Autoencoder for Reject Inference*')
+
+dyn_acc_loop = Image.open('C:/Projects/Information-Systems-Seminar/reject-infer-autoencoder/images/dyn-acc-loop.png')
+st.image(dyn_acc_loop)
 
 
 col1, col2 = st.columns(2)
@@ -23,7 +27,7 @@ if modeltype == 'LGBMClassifier':
 elif modeltype == 'DecisionTreeClassifier':
     model = DecisionTreeClassifier()
 
-initial_trainsplit = st.slider('Split for initial model fitting', 0.01, 1.0, value=0.1)
+initial_trainsplit = st.slider('Split for initial model fitting', 0.001, 1.0, value=0.1)
 
 validationsplit = st.slider('Split for model testing', 0.00001, 1.0, value=0.1)
 
@@ -36,8 +40,10 @@ st.markdown('---')
 if start_btn:
 
     with st.spinner(text='Loading Data...'):
-        sim = dal.Simulate_acceptance_loop(datasetname, model, 0.001, validationsplit, n_years)
+        sim = dal.Simulate_acceptance_loop(datasetname, model, initial_trainsplit, validationsplit, n_years)
         st.success('Data loaded and split!')
+    
+    st.write(sim.info)
 
     plot_element = st.empty()
     progress_element = st.empty()
