@@ -62,7 +62,7 @@ class Simulate_acceptance_loop():
         #print(self.info)
 
 
-    def run(self):
+    def run(self, accpet_fraction = 0.3):
 
         self.simulation_data = self.simulation_data.sample(frac=1, random_state=123)
         self.data_splits = np.array_split(self.simulation_data, self.n_loops)
@@ -82,7 +82,7 @@ class Simulate_acceptance_loop():
             predicted_proba = self.model.predict_proba(X)[:, 1]
             predicted_proba_oracle = self.oracle.predict_proba(X)[:, 1]
 
-            threshold = sorted(predicted_proba)[floor(len(predicted_proba)*0.3)] # accept top n% of aplicants
+            threshold = sorted(predicted_proba)[floor(len(predicted_proba)*accpet_fraction)] # accept top n% of aplicants
 
             predicted_abs = np.where(predicted_proba < threshold, 0, 1)
             predicted_abs_oracle = np.where(predicted_proba_oracle < 0.5, 0, 1)
