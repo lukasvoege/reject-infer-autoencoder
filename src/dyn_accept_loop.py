@@ -17,7 +17,7 @@ class Simulate_acceptance_loop():
         self.n_loops = n_loops
 
         # load dataset
-        complete_data = pd.read_csv(f'C:/Projects/Information-Systems-Seminar/prepared_data/{dataset_name}', sep=',')
+        complete_data = pd.read_csv(f'../prepared_data/{dataset_name}', sep=',')
         complete_data['BAD'] = np.where(complete_data['BAD'] == 'BAD', 1, 0).astype(np.int64)
 
         obj_cols = complete_data.select_dtypes('object').columns

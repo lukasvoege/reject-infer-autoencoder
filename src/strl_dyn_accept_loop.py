@@ -8,12 +8,12 @@ import dyn_accept_loop as dal
 import lightgbm as lgbm
 from sklearn.tree import DecisionTreeClassifier
 
-datapath = 'C:/Projects/Information-Systems-Seminar/prepared_data/'
+datapath = '../prepared_data/'
 
 st.title('Simulate Dynamic Acceptance Process')
 st.write('Seminar Information Systems - Group C1 - *Bias-Removing Autoencoder for Reject Inference*')
 
-dyn_acc_loop = Image.open('C:/Projects/Information-Systems-Seminar/reject-infer-autoencoder/images/dyn-acc-loop.png')
+dyn_acc_loop = Image.open('../images/dyn-acc-loop.png')
 st.image(dyn_acc_loop)
 
 
