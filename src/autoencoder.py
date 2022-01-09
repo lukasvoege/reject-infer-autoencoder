@@ -23,31 +23,39 @@ class CreditscoringDataset(Dataset):
 
 # Autoencoder
 class Autoencoder(nn.Module):       ## parametrisieren!
-    def __init__(self, features):
+    def __init__(self, shape):
         super(Autoencoder, self).__init__()
 
-        self.enc1 = nn.Linear(in_features = features, out_features=15)
-        self.enc2 = nn.Linear(in_features = 15, out_features=6)
+        if shape[0] != shape[-1]:
+            print('Warning! First and last layer of encoder do not have the same size.')
 
-        self.dec2 = nn.Linear(in_features = 6, out_features = 15)
-        self.dec1 = nn.Linear(in_features = 15, out_features = features)
+        self.enc = nn.ModuleList()
+        self.dec = nn.ModuleList()
+
+        # Build encoder part
+        for i in range(shape.index(min(shape))):
+            self.enc.append(nn.Linear(in_features = shape[i], out_features = shape[i + 1]))
+        
+        # Build decoder part
+        for i in range(shape.index(min(shape)), len(shape) - 1):
+            self.dec.append(nn.Linear(in_features = shape[i], out_features = shape[i + 1]))
 
     def forward(self, x):
         x = self.decode(self.encode(x))
         return x
 
     def encode(self, x):
-        x = nn.functional.relu(self.enc1(x))
-        x = nn.functional.relu(self.enc2(x))
+        for e in self.enc:
+            x = nn.functional.relu(e(x))
         return x
         
     def decode(self, x):
-        x = nn.functional.relu(self.dec2(x))
-        x = nn.functional.relu(self.dec1(x))
+        for d in self.dec:
+            x = nn.functional.relu(d(x))
         return x
 
 
-
+# train any net
 def train(net, trainloader, epochs):
     criterion = nn.MSELoss()
     optimizer = optim.Adam(net.parameters(),lr=1e-3)
@@ -71,7 +79,7 @@ def train(net, trainloader, epochs):
     return train_loss
 
 
-
+# load data from csv file, woe encode categorical features (TO-DO), standardize values, make tensor with shape [n_rows, n_features]
 def load_data_to_tensor(dataset_name):
     complete_data = pd.read_csv(f'../prepared_data/{dataset_name}', sep=',')
     complete_data['BAD'] = np.where(complete_data['BAD'] == 'BAD', 1, 0).astype(np.int64)
@@ -89,32 +97,3 @@ def load_data_to_tensor(dataset_name):
 
     # we actually dont need train or test splits and also no y, just x
     return torch.from_numpy(x_stand)
-
-
-
-######################################################################################################################
-######################################################################################################################
-
-
-BATCH_SIZE = 1000
-
-dataset = CreditscoringDataset("gmsc.csv")      # load and prepare Dataset to Tensor
-data_loader = DataLoader(                       # create Dataloader for batching
-    dataset, 
-    batch_size=BATCH_SIZE,
-    shuffle=True
-)
-
-
-net = Autoencoder(dataset.x.shape[1])
-print(net)
-net.to("cpu")
-
-train_loss = train(net, data_loader, 50)
-
-plt.figure()
-plt.plot(train_loss)
-plt.title('Train Loss')
-plt.xlabel('Epochs')
-plt.ylabel('Loss')
-plt.show()
