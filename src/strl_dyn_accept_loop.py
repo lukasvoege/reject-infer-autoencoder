@@ -7,6 +7,7 @@ import dyn_accept_loop as dal
 
 import lightgbm as lgbm
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.linear_model import LogisticRegression
 
 datapath = '../prepared_data/'
 
@@ -21,11 +22,13 @@ col1, col2 = st.columns(2)
 
 datasetname = col1.selectbox('Dataset:', [f  for f in listdir(datapath) if path.isfile(path.join(datapath, f)) and f.endswith('.csv')])
 
-modeltype = col2.selectbox('Model', ('LGBMClassifier', 'DecisionTreeClassifier'))
+modeltype = col2.selectbox('Model', ('LGBMClassifier', 'DecisionTreeClassifier','LR'))
 if modeltype == 'LGBMClassifier':
     model = lgbm.LGBMClassifier()
 elif modeltype == 'DecisionTreeClassifier':
     model = DecisionTreeClassifier()
+elif modeltype == 'LR':
+    model = LogisticRegression()
 
 initial_trainsplit = st.slider('Split for initial model fitting', 0.001, 1.0, value=0.1)
 
