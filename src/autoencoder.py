@@ -66,6 +66,7 @@ def train(net, trainloader, epochs):
         for data in trainloader:
             optimizer.zero_grad()
             outputs = net(data)
+            # subsample outputs and data to compare (Accepts vs. Rejects ODER Accepts vs. Alle ODER Rejects vs. Rejects)
             loss = criterion(outputs, data)
             loss.backward()
             optimizer.step()
