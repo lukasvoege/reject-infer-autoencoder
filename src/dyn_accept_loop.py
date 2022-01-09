@@ -6,6 +6,7 @@ import random
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_auc_score, accuracy_score, f1_score, precision_score
 from sklearn.base import clone
+from sklearn.preprocessing import normalize
 
 
 
@@ -13,8 +14,9 @@ import matplotlib.pyplot as plt
 
 class Simulate_acceptance_loop():
 
-    def __init__(self, dataset_name: str, model, model_fit_split: float, holdout_test_split: float, n_loops: int):
+    def __init__(self, dataset_name: str, model, model_fit_split: float, holdout_test_split: float, n_loops: int, norm_features: bool = False):
         self.n_loops = n_loops
+        self.norm_features = norm_features
 
         # load dataset
         complete_data = pd.read_csv(f'../prepared_data/{dataset_name}', sep=',')
@@ -42,8 +44,13 @@ class Simulate_acceptance_loop():
         self.model = model
         self.oracle = clone(model)
 
-        self.model.fit(X_model_fit, y_model_fit)
-        self.oracle.fit(X_model_fit, y_model_fit)
+        if self.norm_features:
+            X_model_fit_norm = normalize(X_model_fit,axis=0)
+            self.model.fit(X_model_fit_norm, y_model_fit)
+            self.oracle.fit(X_model_fit_norm, y_model_fit)
+        else:
+            self.model.fit(X_model_fit, y_model_fit)
+            self.oracle.fit(X_model_fit, y_model_fit)
 
         # store all available train data
         self.all_train_X = X_model_fit
@@ -130,8 +137,14 @@ class Simulate_acceptance_loop():
             metrics["oracle"]["holdout"]['precision'].append(precision_score(self.holdout_test_y, predicted_abs_oracle))
 
             # 5. train model on all available data to improve
-            self.model.fit(self.all_train_X, self.all_train_y)
-            self.oracle.fit(self.oracle_all_train_X, self.oracle_all_train_y)
+            if self.norm_features:
+                all_train_X_norm = normalize(self.all_train_X,axis=0)
+                oracle_all_train_X_norm = normalize(self.oracle_all_train_X, axis=0)
+                self.model.fit(all_train_X_norm, self.all_train_y)
+                self.oracle.fit(oracle_all_train_X_norm, self.oracle_all_train_y)
+            else:
+                self.model.fit(self.all_train_X, self.all_train_y)
+                self.oracle.fit(self.oracle_all_train_X, self.oracle_all_train_y)
 
             yield year, accepted, self.all_train_X.shape, metrics
 
