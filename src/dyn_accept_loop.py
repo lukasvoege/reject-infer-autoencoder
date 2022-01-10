@@ -9,7 +9,7 @@ from sklearn.metrics import roc_auc_score, accuracy_score, f1_score, precision_s
 from sklearn.base import clone
 import sklearn.preprocessing as pre
 
-
+import helper as h
 
 import matplotlib.pyplot as plt
 
@@ -28,6 +28,13 @@ class Simulate_acceptance_loop():
 
         obj_cols = complete_data.select_dtypes('object').columns
         complete_data[obj_cols] = complete_data[obj_cols].astype('category')
+
+        # For the sake of simplicity when dealing with neural nets later, let's just make everything categorical continous
+        for col in obj_cols:
+            woe_calc = h.IV_Calc(complete_data, feature=col, target='BAD')
+            woe = woe_calc.full_summary()['WOE_adj'].to_dict()
+            complete_data[col] = complete_data[col].map(woe)
+            complete_data[col] = complete_data[col].astype('float64')
 
         complete_X = complete_data.iloc[:, complete_data.columns != 'BAD']
         complete_y = complete_data['BAD']

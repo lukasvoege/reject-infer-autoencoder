@@ -4,9 +4,9 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from sklearn.preprocessing import StandardScaler
-import matplotlib.pyplot as plt
 from torch.utils.data import Dataset, DataLoader
 
+import helper as h
 
 
 # Custom Dataset class, that loads the standardized and prepared data from function load_data_to_tensor()
@@ -22,7 +22,7 @@ class CreditscoringDataset(Dataset):
 
 
 # Autoencoder
-class Autoencoder(nn.Module):       ## parametrisieren!
+class Autoencoder(nn.Module):
     def __init__(self, shape):
         super(Autoencoder, self).__init__()
 
@@ -87,6 +87,13 @@ def load_data_to_tensor(dataset_name):
 
     obj_cols = complete_data.select_dtypes('object').columns
     complete_data[obj_cols] = complete_data[obj_cols].astype('category') ## woe an der stelle
+
+    # For the sake of simplicity when dealing with neural nets later, let's just make everything categorical continous
+    for col in obj_cols:
+        woe_calc = h.IV_Calc(complete_data, feature=col, target='BAD')
+        woe = woe_calc.full_summary()['WOE_adj'].to_dict()
+        complete_data[col] = complete_data[col].map(woe)
+        complete_data[col] = complete_data[col].astype('float64')
 
     complete_X = complete_data.iloc[:, complete_data.columns != 'BAD']
 
