@@ -22,13 +22,15 @@ col1, col2 = st.columns(2)
 
 datasetname = col1.selectbox('Dataset:', [f  for f in listdir(datapath) if path.isfile(path.join(datapath, f)) and f.endswith('.csv')])
 
+norm = st.checkbox('Normalize features?')
+
 modeltype = col2.selectbox('Model', ('LGBMClassifier', 'DecisionTreeClassifier','LogisticRegression'))
 if modeltype == 'LGBMClassifier':
     model = lgbm.LGBMClassifier()
 elif modeltype == 'DecisionTreeClassifier':
-    model = DecisionTreeClassifier()
+    model = DecisionTreeClassifier(min_samples_leaf=40)
 elif modeltype == 'LogisticRegression':
-    model = LogisticRegression()
+    model = LogisticRegression(max_iter=400)
 
 initial_trainsplit = st.slider('Split for initial model fitting', 0.001, 1.0, value=0.1)
 
@@ -43,7 +45,7 @@ st.markdown('---')
 if start_btn:
 
     with st.spinner(text='Loading Data...'):
-        sim = dal.Simulate_acceptance_loop(datasetname, model, initial_trainsplit, validationsplit, n_years)
+        sim = dal.Simulate_acceptance_loop(datasetname, model, initial_trainsplit, validationsplit, n_years, norm_features=norm)
         st.success('Data loaded and split!')
     
     st.write(sim.info)

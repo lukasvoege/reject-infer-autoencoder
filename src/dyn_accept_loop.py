@@ -94,10 +94,11 @@ class Simulate_acceptance_loop():
             y = new_data['BAD']
             
             # 2. predict data for this year with model and oracle
-            predicted_proba = self.model.predict_proba(X)[:, 1]
-            predicted_proba_oracle = self.oracle.predict_proba(X)[:, 1]
+            predicted_proba = self.model.predict_proba(self.transformer.transform(X))[:, 1]
+            predicted_proba_oracle = self.oracle.predict_proba(self.transformer.transform(X))[:, 1]
 
             threshold = sorted(predicted_proba)[floor(len(predicted_proba)*accpet_fraction)] # accept top n% of aplicants
+            if threshold == 0.0: threshold = 0.0001 # needed to allow for pure Tree Classifier Leafs
 
             predicted_abs = np.where(predicted_proba < threshold, 0, 1)
             predicted_abs_oracle = np.where(predicted_proba_oracle < 0.5, 0, 1)
@@ -128,10 +129,10 @@ class Simulate_acceptance_loop():
             metrics["oracle"]["rolling"]['precision'].append(precision_score(y, predicted_abs_oracle))
 
             # 4.2 save metrics on evaluation hold out
-            predicted_proba = self.model.predict_proba(self.holdout_test_X)[:, 1]
+            predicted_proba = self.model.predict_proba(self.transformer.transform(self.holdout_test_X))[:, 1]
             predicted_abs = np.where(predicted_proba < 0.5, 0, 1)
 
-            predicted_proba_oracle = self.oracle.predict_proba(self.holdout_test_X)[:, 1]
+            predicted_proba_oracle = self.oracle.predict_proba(self.transformer.transform(self.holdout_test_X))[:, 1]
             predicted_abs_oracle = np.where(predicted_proba_oracle < 0.5, 0, 1)
 
             metrics["model"]["holdout"]['roc_auc'].append(roc_auc_score(self.holdout_test_y, predicted_proba))
