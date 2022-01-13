@@ -8,19 +8,31 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_auc_score, accuracy_score, f1_score, precision_score
 from sklearn.base import clone
 import sklearn.preprocessing as pre
+import torch
 
 import helper as h
+import autoencoder as aenc
 
 import matplotlib.pyplot as plt
 
 class Simulate_acceptance_loop():
 
-    def __init__(self, dataset_name: str, model, model_fit_split: float, holdout_test_split: float, n_loops: int, norm_features: bool = False):
+    def __init__(self, dataset_name: str, model, model_fit_split: float, holdout_test_split: float, n_loops: int, enc_features: bool = False, encoder: aenc.Autoencoder = None):
         self.n_loops = n_loops
-        if norm_features:
-            self.transformer  =  pre.StandardScaler()
+
+        # custom Transformer, that standard scales and then encodes the data with Autoencoder
+        def std_enco(x):
+            x_np = x.values.reshape(-1, x.shape[1]).astype('float32')
+            x_trans = pre.StandardScaler().fit_transform(x_np)
+            with torch.no_grad():
+                x_encoded = encoder.encode(torch.from_numpy(x_trans)).numpy()
+            return x_encoded
+
+        # Either normal StandardScaler or StandardScaler and Encoder
+        if enc_features:
+            self.transformer  =  pre.FunctionTransformer(std_enco)
         else:
-            self.transformer  = pre.FunctionTransformer()
+            self.transformer  = pre.StandardScaler()
 
         # load dataset
         complete_data = pd.read_csv(f'../prepared_data/{dataset_name}', sep=',')
@@ -153,7 +165,7 @@ class Simulate_acceptance_loop():
             self.model.fit(all_train_X_trans, self.all_train_y)
             self.oracle.fit(oracle_all_train_X_trans, self.oracle_all_train_y)
 
-            yield year, accepted, self.all_train_X.shape, metrics
+            yield year, accepted, all_train_X_trans.shape, metrics
 
         return metrics
 

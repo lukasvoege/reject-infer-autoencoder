@@ -12,10 +12,10 @@ import helper as h
 # Custom Dataset class, that loads the standardized and prepared data from function load_data_to_tensor()
 class CreditscoringDataset(Dataset):
     def __init__(self, dataset_name):
-        self.x = load_data_to_tensor(dataset_name)
+        self.x, self.y = load_data_to_tensor(dataset_name)
         
     def __getitem__(self,index):      
-        return self.x[index]
+        return self.x[index], self.y[index]
 
     def __len__(self):
         return self.x.shape[0]
@@ -64,10 +64,11 @@ def train(net, trainloader, epochs):
     for epoch in range(epochs):
         running_loss = 0.0
         for data in trainloader:
+            data_x, data_y = data
             optimizer.zero_grad()
-            outputs = net(data)
+            outputs = net(data_x)
             # subsample outputs and data to compare (Accepts vs. Rejects ODER Accepts vs. Alle ODER Rejects vs. Rejects)
-            loss = criterion(outputs, data)
+            loss = criterion(outputs, data_x)
             loss.backward()
             optimizer.step()
             running_loss += loss.item()
@@ -86,7 +87,7 @@ def load_data_to_tensor(dataset_name):
     complete_data['BAD'] = np.where(complete_data['BAD'] == 'BAD', 1, 0).astype(np.int64)
 
     obj_cols = complete_data.select_dtypes('object').columns
-    complete_data[obj_cols] = complete_data[obj_cols].astype('category') ## woe an der stelle
+    complete_data[obj_cols] = complete_data[obj_cols].astype('category')
 
     # For the sake of simplicity when dealing with neural nets later, let's just make everything categorical continous
     for col in obj_cols:
@@ -96,12 +97,14 @@ def load_data_to_tensor(dataset_name):
         complete_data[col] = complete_data[col].astype('float64')
 
     complete_X = complete_data.iloc[:, complete_data.columns != 'BAD']
+    complete_y = complete_data['BAD']
 
     x_np = complete_X.values.reshape(-1, complete_X.shape[1]).astype('float32')
+    y_np = complete_y.values.reshape(-1, 1).astype('float32')
 
     # stadardize values
     standardizer = StandardScaler()
     x_stand = standardizer.fit_transform(x_np)
 
-    # we actually dont need train or test splits and also no y, just x
-    return torch.from_numpy(x_stand)
+    # we actually dont need train or test splits
+    return torch.from_numpy(x_stand), torch.from_numpy(y_np)
