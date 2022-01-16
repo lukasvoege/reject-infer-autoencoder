@@ -22,7 +22,7 @@ col1, col2 = st.columns(2)
 
 datasetname = col1.selectbox('Dataset:', [f  for f in listdir(datapath) if path.isfile(path.join(datapath, f)) and f.endswith('.csv')])
 
-norm = st.checkbox('Normalize features?')
+norm = st.checkbox('Autoencode features?')
 
 modeltype = col2.selectbox('Model', ('LGBMClassifier', 'DecisionTreeClassifier','LogisticRegression'))
 if modeltype == 'LGBMClassifier':
@@ -45,7 +45,7 @@ st.markdown('---')
 if start_btn:
 
     with st.spinner(text='Loading Data...'):
-        sim = dal.Simulate_acceptance_loop(datasetname, model, initial_trainsplit, validationsplit, n_years, norm_features=norm)
+        sim = dal.Simulate_acceptance_loop(datasetname, model, initial_trainsplit, validationsplit, n_years, enc_features=norm, encoder=None)
         st.success('Data loaded and split!')
     
     st.write(sim.info)
