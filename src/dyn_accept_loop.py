@@ -15,10 +15,12 @@ import autoencoder as aenc
 
 import matplotlib.pyplot as plt
 
+
 class Simulate_acceptance_loop():
 
-    def __init__(self, dataset_name: str, model, model_fit_split: float, holdout_test_split: float, n_loops: int, enc_features: bool = False, encoder: aenc.Autoencoder = None):
+    def __init__(self, dataset_name: str, model, model_fit_split: float, holdout_test_split: float, n_loops: int, enc_features: bool = False, encoder: aenc.Autoencoder = None, rej_inf = None):
         self.n_loops = n_loops
+        self.rej_inf = rej_inf
 
         # custom Transformer, that standard scales and then encodes the data with Autoencoder
         def std_enco(x):
@@ -69,7 +71,12 @@ class Simulate_acceptance_loop():
 
         self.transformer.fit(X_model_fit)
         X_model_fit_trans = self.transformer.transform(X_model_fit)
-        self.model.fit(X_model_fit_trans, y_model_fit)
+        
+        if(rej_inf is None):
+            self.model.fit(X_model_fit_trans, y_model_fit)
+        else:
+            rej_inf(self.model, X_model_fit_trans, y_model_fit)
+
         self.oracle.fit(X_model_fit_trans, y_model_fit)
 
         # store all available train data
@@ -162,7 +169,11 @@ class Simulate_acceptance_loop():
             all_train_X_trans = self.transformer.transform(self.all_train_X)
             self.transformer.fit(self.oracle_all_train_X)
             oracle_all_train_X_trans = self.transformer.transform(self.oracle_all_train_X)
-            self.model.fit(all_train_X_trans, self.all_train_y)
+            if(self.rej_inf is None):
+                self.model.fit(all_train_X_trans, self.all_train_y)
+            else:
+                self.rej_inf(self.model,all_train_X_trans, self.all_train_y)
+                
             self.oracle.fit(oracle_all_train_X_trans, self.oracle_all_train_y)
 
             yield year, accepted, all_train_X_trans.shape, metrics
@@ -187,4 +198,3 @@ plt.legend()
 plt.show()
 
 '''
-        
