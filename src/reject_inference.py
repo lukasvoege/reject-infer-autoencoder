@@ -9,7 +9,7 @@ def augmentation(model, x,y, iterative: bool = False):
     model.fit(x,y,weights)
 
 
-def  EMsemisupervised(model, X,y):
+def EMsemisupervised(model, X,y):
     params = learn_params(X,y)
     
     weights = [1 - params["phi"], params["phi"]]
