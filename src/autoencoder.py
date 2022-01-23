@@ -1,3 +1,4 @@
+from turtle import shape
 import pandas as pd
 import numpy as np
 import torch
@@ -95,6 +96,12 @@ def load_data_to_tensor(dataset_name):
         woe = woe_calc.full_summary()['WOE_adj'].to_dict()
         complete_data[col] = complete_data[col].map(woe)
         complete_data[col] = complete_data[col].astype('float64')
+
+    ###### TRAIN ENCODER ON SUBSET OF THE DATA ########################
+
+    complete_data = complete_data[complete_data['BAD'] == 1]    # Only on BAD (1) or GOOD (0)
+    print(f'Shape of Autoencoder training data: {complete_data.shape}')
+    ###################################################################
 
     complete_X = complete_data.iloc[:, complete_data.columns != 'BAD']
     complete_y = complete_data['BAD']

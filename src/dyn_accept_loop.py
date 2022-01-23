@@ -180,8 +180,10 @@ class Simulate_acceptance_loop():
             # 5. train model on all available data to improve
             self.transformer.fit(self.all_train_X)
             all_train_X_trans = self.transformer.transform(self.all_train_X)
+
             self.transformer.fit(self.oracle_all_train_X)
             oracle_all_train_X_trans = self.transformer.transform(self.oracle_all_train_X)
+            
             if(self.rej_inf is None):
                 self.model.fit(all_train_X_trans, self.all_train_y)
             else:

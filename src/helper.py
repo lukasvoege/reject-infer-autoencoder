@@ -1,5 +1,14 @@
+from turtle import st
 import pandas as pd
 import numpy as np
+
+######################################################
+#Generics
+######################################################
+
+# a measure for the sampling bias: avg. difference between the oracle and model performance over all but the first n start_years (bc there is no/small bias at the start)
+def measure_bias(oracle_metric, model_metric, last_n_years = 3):
+    return sum([om - mm for (om, mm) in zip(oracle_metric[-last_n_years:], model_metric[-last_n_years:])]) / last_n_years
 
 ######################################################
 #Calculate WOEs
