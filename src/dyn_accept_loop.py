@@ -18,9 +18,10 @@ import matplotlib.pyplot as plt
 
 class Simulate_acceptance_loop():
 
-    def __init__(self, dataset_name: str, model, model_fit_split: float, holdout_test_split: float, n_loops: int, enc_features: bool = False, encoder: aenc.Autoencoder = None, rej_inf = None):
+    def __init__(self, dataset_name: str, model, model_fit_split: float, holdout_test_split: float, n_loops: int, enc_features: bool = False, encoder: aenc.Autoencoder = None, rej_inf = None, incl_rejected: bool = False):
         self.n_loops = n_loops
         self.rej_inf = rej_inf
+        self.incl_rejected = incl_rejected
 
         # custom Transformer, that standard scales and then encodes the data with Autoencoder
         def std_enco(x):
@@ -71,11 +72,7 @@ class Simulate_acceptance_loop():
 
         self.transformer.fit(X_model_fit)
         X_model_fit_trans = self.transformer.transform(X_model_fit)
-        
-        if(rej_inf is None):
-            self.model.fit(X_model_fit_trans, y_model_fit)
-        else:
-            rej_inf(self.model, X_model_fit_trans, y_model_fit)
+        self.model.fit(X_model_fit_trans, y_model_fit)
 
         self.oracle.fit(X_model_fit_trans, y_model_fit)
 
@@ -85,6 +82,13 @@ class Simulate_acceptance_loop():
 
         self.oracle_all_train_X = X_model_fit
         self.oracle_all_train_y = y_model_fit
+
+        # store an additional accepted array in case this is needed for reject inference
+        predicted_proba = self.model.predict_proba(X_model_fit_trans)
+        threshold = sorted(predicted_proba)[floor(len(predicted_proba[:,0])*0.3)] # accept top n% of aplicants
+        if threshold == 0.0: threshold = 0.0001 # needed to allow for pure Tree Classifier Leafs
+        predicted_abs = np.where(predicted_proba < threshold, 0, 1)
+        self.accepted = [True if x == 0 else False for x in predicted_abs]
 
         self.info = f'''
         Data SPLIT ({dataset_name}):\n
@@ -124,14 +128,23 @@ class Simulate_acceptance_loop():
 
             # 3. add accepted data points to all available training data
             accepted = [True if x == 0 else False for x in predicted_abs]
-            self.all_train_X = pd.concat([self.all_train_X, X[accepted]], ignore_index=True)
-            self.all_train_y = pd.concat([self.all_train_y, y[accepted]], ignore_index=True)
+            if(self.incl_rejected):
+                self.accepted.extend(accepted)
+            else:
+                X = X[accepted]
+                Y = Y[accepted]
+
+            self.all_train_X = pd.concat([self.all_train_X, X], ignore_index=True)
+            self.all_train_y = pd.concat([self.all_train_y, y], ignore_index=True)
 
             # 3.2 add same number of points (but random points - so no acceptance bias) to oracle model
-            random.shuffle(accepted)
+            if(not self.incl_rejected):
+                random.shuffle(accepted)
+                X = X[accepted]
+                Y = Y[accepted]
 
-            self.oracle_all_train_X = pd.concat([self.oracle_all_train_X, X[accepted]], ignore_index=True)
-            self.oracle_all_train_y = pd.concat([self.oracle_all_train_y, y[accepted]], ignore_index=True)
+            self.oracle_all_train_X = pd.concat([self.oracle_all_train_X, X], ignore_index=True)
+            self.oracle_all_train_y = pd.concat([self.oracle_all_train_y, y], ignore_index=True)
 
             # verbose
             # print(f'Itteration: {year}) Accepted: {accepted.count(True)} | Denied: {accepted.count(False)} - New train set size: {self.all_train_X.shape}')
@@ -172,7 +185,10 @@ class Simulate_acceptance_loop():
             if(self.rej_inf is None):
                 self.model.fit(all_train_X_trans, self.all_train_y)
             else:
-                self.rej_inf(self.model,all_train_X_trans, self.all_train_y)
+                if(self.incl_rejected):
+                    self.rej_inf(self.model,all_train_X_trans, self.all_train_y, self.accepted)
+                else:
+                    self.rej_inf(self.model,all_train_X_trans, self.all_train_y)
                 
             self.oracle.fit(oracle_all_train_X_trans, self.oracle_all_train_y)
 
