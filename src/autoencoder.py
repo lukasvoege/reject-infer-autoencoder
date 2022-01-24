@@ -1,9 +1,11 @@
+from tkinter import E
 from turtle import shape
 import pandas as pd
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torch.distributions as dis
 from sklearn.preprocessing import StandardScaler
 from torch.utils.data import Dataset, DataLoader
 
@@ -59,7 +61,7 @@ class Autoencoder(nn.Module):
 # train any net
 def train(net, trainloader, epochs):
     criterion = nn.MSELoss()
-    criterion2 = nn.KLDivLoss()
+    criterion2 = nn.KLDivLoss(log_target=True, reduction="batchmean")
     optimizer = optim.Adam(net.parameters(),lr=1e-3)
 
     train_loss = []
@@ -70,9 +72,22 @@ def train(net, trainloader, epochs):
             optimizer.zero_grad()
             outputs = net(data_x)
             encoded = net.encode(data_x)
-            accepted = [True if x == 0 else False for x in data_y]
-            # subsample outputs and data to compare (Accepts vs. Rejects ODER Accepts vs. Alle ODER Rejects vs. Rejects)
-            loss = criterion(outputs, data_x) + criterion2(encoded[accepted],encoded[not(accepted)])
+
+            # split encoded data into good and bad subsets
+            good = [True if x == 0 else False for x in data_y]
+            enc_good = encoded[good]
+            enc_bad = encoded[[not value for value in good]]
+            #print(f'Enc_good shape: {enc_good.shape} Enc_bad shape: {enc_bad.shape}')
+
+            # build MultiNorm Distributions from subsets and create log_probs of enc_good for both distributions to compare with KLDIVLOSS
+            MN_dist_good = dis.multivariate_normal.MultivariateNormal(torch.mean(enc_good, dim=0), torch.add(torch.cov(torch.transpose(enc_good, 0, 1)), 0.001))
+            MN_dist_bad = dis.multivariate_normal.MultivariateNormal(torch.mean(enc_bad, dim=0), torch.add(torch.cov(torch.transpose(enc_bad, 0, 1)), 0.001))
+
+            TEST1 = criterion2(MN_dist_bad.log_prob(enc_good), MN_dist_good.log_prob(enc_good))
+            TEST2 = criterion(outputs, data_x)
+
+            loss = 0.0 * TEST2 + 1.0 * TEST1
+
             loss.backward()
             optimizer.step()
             running_loss += loss.item()
@@ -90,6 +105,12 @@ def load_data_to_tensor(dataset_name):
     complete_data = pd.read_csv(f'../prepared_data/{dataset_name}', sep=',')
     complete_data['BAD'] = np.where(complete_data['BAD'] == 'BAD', 1, 0).astype(np.int64)
 
+    #print(complete_data.shape)
+
+    complete_data = pd.concat([complete_data[complete_data['BAD'] == 0].sample(complete_data['BAD'].value_counts()[1]), complete_data[complete_data['BAD'] == 1]])
+
+    #print(complete_data.shape)
+
     obj_cols = complete_data.select_dtypes('object').columns
     complete_data[obj_cols] = complete_data[obj_cols].astype('category')
 
@@ -102,8 +123,8 @@ def load_data_to_tensor(dataset_name):
 
     ###### TRAIN ENCODER ON SUBSET OF THE DATA ########################
 
-    complete_data = complete_data[complete_data['BAD'] == 1]    # Only on BAD (1) or GOOD (0)
-    print(f'Shape of Autoencoder training data: {complete_data.shape}')
+    #complete_data = complete_data[complete_data['BAD'] == 1]    # Only on BAD (1) or GOOD (0)
+    #print(f'Shape of Autoencoder training data: {complete_data.shape}')
     ###################################################################
 
     complete_X = complete_data.iloc[:, complete_data.columns != 'BAD']
