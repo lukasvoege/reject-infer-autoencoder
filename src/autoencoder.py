@@ -59,6 +59,7 @@ class Autoencoder(nn.Module):
 # train any net
 def train(net, trainloader, epochs):
     criterion = nn.MSELoss()
+    criterion2 = nn.KLDivLoss()
     optimizer = optim.Adam(net.parameters(),lr=1e-3)
 
     train_loss = []
@@ -68,8 +69,10 @@ def train(net, trainloader, epochs):
             data_x, data_y = data
             optimizer.zero_grad()
             outputs = net(data_x)
+            encoded = net.encode(data_x)
+            accepted = [True if x == 0 else False for x in data_y]
             # subsample outputs and data to compare (Accepts vs. Rejects ODER Accepts vs. Alle ODER Rejects vs. Rejects)
-            loss = criterion(outputs, data_x)
+            loss = criterion(outputs, data_x) + criterion2(encoded[accepted],encoded[not(accepted)])
             loss.backward()
             optimizer.step()
             running_loss += loss.item()
