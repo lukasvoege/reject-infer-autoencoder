@@ -80,13 +80,13 @@ def train(net, trainloader, epochs):
             #print(f'Enc_good shape: {enc_good.shape} Enc_bad shape: {enc_bad.shape}')
 
             # build MultiNorm Distributions from subsets and create log_probs of enc_good for both distributions to compare with KLDIVLOSS
-            MN_dist_good = dis.multivariate_normal.MultivariateNormal(torch.mean(enc_good, dim=0), torch.add(torch.cov(torch.transpose(enc_good, 0, 1)), 0.001))
-            MN_dist_bad = dis.multivariate_normal.MultivariateNormal(torch.mean(enc_bad, dim=0), torch.add(torch.cov(torch.transpose(enc_bad, 0, 1)), 0.001))
+            MN_dist_good = dis.multivariate_normal.MultivariateNormal(torch.mean(enc_good, dim=0), torch.corrcoef(torch.transpose(enc_good, 0, 1)))
+            MN_dist_bad = dis.multivariate_normal.MultivariateNormal(torch.mean(enc_bad, dim=0), torch.corrcoef(torch.transpose(enc_bad, 0, 1)))
 
             TEST1 = criterion2(MN_dist_bad.log_prob(enc_good), MN_dist_good.log_prob(enc_good))
             TEST2 = criterion(outputs, data_x)
 
-            loss = 0.0 * TEST2 + 1.0 * TEST1
+            loss = 0.7 * TEST2 + 0.3 * TEST1
 
             loss.backward()
             optimizer.step()
