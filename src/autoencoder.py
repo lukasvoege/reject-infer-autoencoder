@@ -8,6 +8,7 @@ import torch.optim as optim
 import torch.distributions as dis
 from sklearn.preprocessing import StandardScaler
 from torch.utils.data import Dataset, DataLoader
+import mmd_loss as mmd
 
 import helper as h
 
@@ -61,7 +62,8 @@ class Autoencoder(nn.Module):
 # train any net
 def train(net, trainloader, epochs, learningrate):
     criterion = nn.MSELoss()
-    criterion2 = nn.KLDivLoss(log_target=True, reduction="batchmean")
+    #criterion2 = nn.KLDivLoss(log_target=True, reduction="batchmean")
+    criterion3 = mmd.MMD_loss()
     optimizer = optim.Adam(net.parameters(), lr=learningrate)
 
     train_loss = []
@@ -80,16 +82,22 @@ def train(net, trainloader, epochs, learningrate):
             #print(f'Enc_good shape: {enc_good.shape} Enc_bad shape: {enc_bad.shape}')
 
             # build MultiNorm Distributions from subsets and create log_probs of enc_good for both distributions to compare with KLDIVLOSS
-            MN_dist_good = dis.multivariate_normal.MultivariateNormal(torch.mean(enc_good, dim=0), torch.corrcoef(torch.transpose(enc_good, 0, 1)))
-            MN_dist_bad = dis.multivariate_normal.MultivariateNormal(torch.mean(enc_bad, dim=0), torch.corrcoef(torch.transpose(enc_bad, 0, 1)))
+            #MN_dist_good = dis.multivariate_normal.MultivariateNormal(torch.mean(enc_good, dim=0), torch.corrcoef(torch.transpose(enc_good, 0, 1)))
+            #MN_dist_bad = dis.multivariate_normal.MultivariateNormal(torch.mean(enc_bad, dim=0), torch.corrcoef(torch.transpose(enc_bad, 0, 1)))
 
-            test1 = nn.functional.softmax(MN_dist_bad.log_prob(enc_good), dim=0)
-            test2 = nn.functional.softmax(MN_dist_good.log_prob(enc_good), dim=0)
+            #test1 = nn.functional.softmax(MN_dist_bad.log_prob(enc_good), dim=0)
+            #test2 = nn.functional.softmax(MN_dist_good.log_prob(enc_good), dim=0)
 
-            KLDivLoss = criterion2(MN_dist_bad.log_prob(enc_good), MN_dist_good.log_prob(enc_good))
+            #sample = MN_dist_good.sample((1000,))
+
+            enc_good = enc_good[:min([len(enc_good),len(enc_bad)])]
+            enc_bad = enc_bad[:min([len(enc_good),len(enc_bad)])]
+
+            #KLDivLoss = criterion2(MN_dist_bad.log_prob(sample), MN_dist_good.log_prob(sample))
             MMSELoss = criterion(outputs, data_x)
+            MMDLoss = criterion3(enc_good,enc_bad)
 
-            loss = 0.0 * MMSELoss + 0.5 * KLDivLoss
+            loss = 0.7 * MMSELoss + 0.3 * MMDLoss #KLDivLoss
 
             loss.backward()
             optimizer.step()
