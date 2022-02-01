@@ -49,20 +49,20 @@ class Autoencoder(nn.Module):
 
     def encode(self, x):
         for e in self.enc:
-            x = nn.functional.relu(e(x))
+            x = torch.tanh(e(x))
         return x
         
     def decode(self, x):
         for d in self.dec:
-            x = nn.functional.relu(d(x))
+            x = torch.tanh(d(x))
         return x
 
 
 # train any net
-def train(net, trainloader, epochs):
+def train(net, trainloader, epochs, learningrate):
     criterion = nn.MSELoss()
     criterion2 = nn.KLDivLoss(log_target=True, reduction="batchmean")
-    optimizer = optim.Adam(net.parameters(),lr=1e-3)
+    optimizer = optim.Adam(net.parameters(), lr=learningrate)
 
     train_loss = []
     for epoch in range(epochs):
@@ -83,10 +83,13 @@ def train(net, trainloader, epochs):
             MN_dist_good = dis.multivariate_normal.MultivariateNormal(torch.mean(enc_good, dim=0), torch.corrcoef(torch.transpose(enc_good, 0, 1)))
             MN_dist_bad = dis.multivariate_normal.MultivariateNormal(torch.mean(enc_bad, dim=0), torch.corrcoef(torch.transpose(enc_bad, 0, 1)))
 
-            TEST1 = criterion2(MN_dist_bad.log_prob(enc_good), MN_dist_good.log_prob(enc_good))
-            TEST2 = criterion(outputs, data_x)
+            test1 = nn.functional.softmax(MN_dist_bad.log_prob(enc_good), dim=0)
+            test2 = nn.functional.softmax(MN_dist_good.log_prob(enc_good), dim=0)
 
-            loss = 0.7 * TEST2 + 0.3 * TEST1
+            KLDivLoss = criterion2(MN_dist_bad.log_prob(enc_good), MN_dist_good.log_prob(enc_good))
+            MMSELoss = criterion(outputs, data_x)
+
+            loss = 0.0 * MMSELoss + 0.5 * KLDivLoss
 
             loss.backward()
             optimizer.step()
@@ -123,7 +126,7 @@ def load_data_to_tensor(dataset_name):
 
     ###### TRAIN ENCODER ON SUBSET OF THE DATA ########################
 
-    #complete_data = complete_data[complete_data['BAD'] == 1]    # Only on BAD (1) or GOOD (0)
+    #complete_data = complete_data[complete_data['BAD'] == 0]    # Only on BAD (1) or GOOD (0)
     #print(f'Shape of Autoencoder training data: {complete_data.shape}')
     ###################################################################
 
