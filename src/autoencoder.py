@@ -67,8 +67,12 @@ def train(net, trainloader, epochs, learningrate):
     optimizer = optim.Adam(net.parameters(), lr=learningrate)
 
     train_loss = []
+    train_loss_mmse = []
+    train_loss_mmd = []
     for epoch in range(epochs):
         running_loss = 0.0
+        running_loss_mmse = 0.0
+        running_loss_mmd = 0.0
         for data in trainloader:
             data_x, data_y = data
             optimizer.zero_grad()
@@ -95,20 +99,26 @@ def train(net, trainloader, epochs, learningrate):
 
             #KLDivLoss = criterion2(MN_dist_bad.log_prob(sample), MN_dist_good.log_prob(sample))
             MMSELoss = criterion(outputs, data_x)
-            MMDLoss = criterion3(enc_good,enc_bad)
+            MMDLoss = criterion3(enc_good,enc_bad) * 10
 
-            loss = 0.7 * MMSELoss + 0.3 * MMDLoss #KLDivLoss
+            loss = 0.9 * MMSELoss + 0.1 * MMDLoss #KLDivLoss
 
             loss.backward()
             optimizer.step()
             running_loss += loss.item()
+            running_loss_mmse += MMSELoss.item()
+            running_loss_mmd += MMDLoss.item()
 
         loss = running_loss / len(trainloader)
+        MMSELoss = running_loss_mmse / len(trainloader)
+        MMDLoss = running_loss_mmd / len(trainloader)
         train_loss.append(loss)
+        train_loss_mmse.append(MMSELoss)
+        train_loss_mmd.append(MMDLoss)
         
-        print('Epoch {} of {}, Train Loss: {:.3f}'.format(epoch+1, epochs, loss))
+        print('Epoch {} of {}, Train Loss: {:.4f} (MMSE: {:.4f} | MMD: {:.4f})'.format(epoch+1, epochs, loss, MMSELoss, MMDLoss))
 
-    return train_loss
+    return train_loss, train_loss_mmse, train_loss_mmd
 
 
 # load data from csv file, woe encode categorical features (TO-DO), standardize values, make tensor with shape [n_rows, n_features]
