@@ -1,6 +1,11 @@
 # reject-infer-autoencoder
 Information Systems Seminar Group 1
 
+# Notes
+- MMD Loss braucht große batch sizes, MMSE leider eher kleine
+- MMD bringt 0, verschlechtert situation nur
+- KLVDiv funktioniert, sorgt für weniger sampling bias
+
 # Ideas 
 - streamlit
 --> options for different metrics

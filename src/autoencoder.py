@@ -62,17 +62,19 @@ class Autoencoder(nn.Module):
 # train any net
 def train(net, trainloader, epochs, learningrate):
     criterion = nn.MSELoss()
-    #criterion2 = nn.KLDivLoss(log_target=True, reduction="batchmean")
+    criterion2 = nn.KLDivLoss(log_target=True, reduction="batchmean")
     criterion3 = mmd.MMD_loss()
     optimizer = optim.Adam(net.parameters(), lr=learningrate)
 
     train_loss = []
     train_loss_mmse = []
     train_loss_mmd = []
+    train_loss_kld = []
     for epoch in range(epochs):
         running_loss = 0.0
         running_loss_mmse = 0.0
         running_loss_mmd = 0.0
+        running_loss_kld = 0.0
         for data in trainloader:
             data_x, data_y = data
             optimizer.zero_grad()
@@ -86,39 +88,39 @@ def train(net, trainloader, epochs, learningrate):
             #print(f'Enc_good shape: {enc_good.shape} Enc_bad shape: {enc_bad.shape}')
 
             # build MultiNorm Distributions from subsets and create log_probs of enc_good for both distributions to compare with KLDIVLOSS
-            #MN_dist_good = dis.multivariate_normal.MultivariateNormal(torch.mean(enc_good, dim=0), torch.corrcoef(torch.transpose(enc_good, 0, 1)))
-            #MN_dist_bad = dis.multivariate_normal.MultivariateNormal(torch.mean(enc_bad, dim=0), torch.corrcoef(torch.transpose(enc_bad, 0, 1)))
+            MN_dist_good = dis.multivariate_normal.MultivariateNormal(torch.mean(enc_good, dim=0), torch.corrcoef(torch.transpose(enc_good, 0, 1)))
+            MN_dist_bad = dis.multivariate_normal.MultivariateNormal(torch.mean(enc_bad, dim=0), torch.corrcoef(torch.transpose(enc_bad, 0, 1)))
 
-            #test1 = nn.functional.softmax(MN_dist_bad.log_prob(enc_good), dim=0)
-            #test2 = nn.functional.softmax(MN_dist_good.log_prob(enc_good), dim=0)
-
-            #sample = MN_dist_good.sample((1000,))
+            sample = MN_dist_good.sample((1000,))
 
             enc_good = enc_good[:min([len(enc_good),len(enc_bad)])]
             enc_bad = enc_bad[:min([len(enc_good),len(enc_bad)])]
 
-            #KLDivLoss = criterion2(MN_dist_bad.log_prob(sample), MN_dist_good.log_prob(sample))
+            KLDivLoss = criterion2(MN_dist_bad.log_prob(sample), MN_dist_good.log_prob(sample)) * 100000
             MMSELoss = criterion(outputs, data_x)
             MMDLoss = criterion3(enc_good,enc_bad) * 10
 
-            loss = 0.9 * MMSELoss + 0.1 * MMDLoss #KLDivLoss
+            loss = 0.2 * MMSELoss + 0.8 * KLDivLoss + 0.0 * MMDLoss
 
             loss.backward()
             optimizer.step()
             running_loss += loss.item()
             running_loss_mmse += MMSELoss.item()
             running_loss_mmd += MMDLoss.item()
+            running_loss_kld += KLDivLoss.item()
 
         loss = running_loss / len(trainloader)
         MMSELoss = running_loss_mmse / len(trainloader)
         MMDLoss = running_loss_mmd / len(trainloader)
+        KLDivLoss = running_loss_kld / len(trainloader)
         train_loss.append(loss)
         train_loss_mmse.append(MMSELoss)
         train_loss_mmd.append(MMDLoss)
+        train_loss_kld.append(KLDivLoss)
         
-        print('Epoch {} of {}, Train Loss: {:.4f} (MMSE: {:.4f} | MMD: {:.4f})'.format(epoch+1, epochs, loss, MMSELoss, MMDLoss))
+        print('Epoch {} of {}, Train Loss: {:.4f} (MMSE: {:.4f} | MMD: {:.4f} | KLD: {:.4f})'.format(epoch+1, epochs, loss, MMSELoss, MMDLoss, KLDivLoss))
 
-    return train_loss, train_loss_mmse, train_loss_mmd
+    return train_loss, train_loss_mmse, train_loss_mmd, train_loss_kld
 
 
 # load data from csv file, woe encode categorical features (TO-DO), standardize values, make tensor with shape [n_rows, n_features]
