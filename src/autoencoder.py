@@ -96,7 +96,7 @@ def train(net, trainloader, epochs, learningrate):
             enc_good = enc_good[:min([len(enc_good),len(enc_bad)])]
             enc_bad = enc_bad[:min([len(enc_good),len(enc_bad)])]
 
-            KLDivLoss = criterion2(MN_dist_bad.log_prob(sample), MN_dist_good.log_prob(sample)) * 100000
+            KLDivLoss = criterion2(MN_dist_bad.log_prob(sample), MN_dist_good.log_prob(sample)) * 1000000
             MMSELoss = criterion(outputs, data_x)
             MMDLoss = criterion3(enc_good,enc_bad) * 10
 
