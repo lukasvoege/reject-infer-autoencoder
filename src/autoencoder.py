@@ -60,7 +60,7 @@ class Autoencoder(nn.Module):
 
 
 # train any net
-def train(net, trainloader, epochs, learningrate):
+def train(net, trainloader, epochs, learningrate, lossFuncWeights):
     criterion = nn.MSELoss()
     criterion2 = nn.KLDivLoss(log_target=True, reduction="batchmean")
     criterion3 = mmd.MMD_loss()
@@ -96,11 +96,12 @@ def train(net, trainloader, epochs, learningrate):
             enc_good = enc_good[:min([len(enc_good),len(enc_bad)])]
             enc_bad = enc_bad[:min([len(enc_good),len(enc_bad)])]
 
-            KLDivLoss = criterion2(MN_dist_bad.log_prob(sample), MN_dist_good.log_prob(sample)) * 1000000
-            MMSELoss = criterion(outputs, data_x)
-            MMDLoss = criterion3(enc_good,enc_bad) * 10
+            # calculate criterions only if they influence the overall loss
+            MMSELoss = criterion(outputs, data_x)                                                           if lossFuncWeights[0] > 0.0 else torch.zeros(1)
+            KLDivLoss = criterion2(MN_dist_bad.log_prob(sample), MN_dist_good.log_prob(sample)) * 1000000   if lossFuncWeights[1] > 0.0 else torch.zeros(1)
+            MMDLoss = criterion3(enc_good,enc_bad) * 10                                                     if lossFuncWeights[2] > 0.0 else torch.zeros(1)
 
-            loss = 0.2 * MMSELoss + 0.8 * KLDivLoss + 0.0 * MMDLoss
+            loss = lossFuncWeights[0] * MMSELoss + lossFuncWeights[1] * KLDivLoss + lossFuncWeights[2] * MMDLoss
 
             loss.backward()
             optimizer.step()

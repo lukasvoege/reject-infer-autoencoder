@@ -4,13 +4,13 @@ from sklearn.base import clone
 
 def augmentation(model, x,y, iterative: bool = False):
     mod = clone(model)
-    mod.fit(x,y)
+    mod.fit(x, y)
     weights = 1 / mod.predict_proba(x)[:,1]
-    model.fit(x,y,weights)
+    model.fit(x, y, weights)
 
 
-def  EMsemisupervised(model, X,y, accepted):
-    params = learn_params(X,accepted)
+def  EMsemisupervised(model, X, y, accepted):
+    params = learn_params(X, accepted)
     
     weights = [1 - params["phi"], params["phi"]]
     means = [params["mu0"], params["mu1"]]
@@ -25,7 +25,7 @@ def  EMsemisupervised(model, X,y, accepted):
                             precisions_init=covariances)
     mixture.fit(X)
     predicts = mixture.predict_proba(X)[:,1]
-    model.fit(X,y,predicts)
+    model.fit(X, y, predicts)
 
 def learn_params(x_labeled, y_labeled):
     n = x_labeled.shape[0]
