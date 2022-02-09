@@ -119,7 +119,7 @@ def train(net, trainloader, epochs, learningrate, lossFuncWeights):
         train_loss_mmd.append(MMDLoss)
         train_loss_kld.append(KLDivLoss)
         
-        print('Epoch {} of {}, Train Loss: {:.4f} (MMSE: {:.4f} | MMD: {:.4f} | KLD: {:.4f})'.format(epoch+1, epochs, loss, MMSELoss, MMDLoss, KLDivLoss))
+        #print('Epoch {} of {}, Train Loss: {:.4f} (MMSE: {:.4f} | MMD: {:.4f} | KLD: {:.4f})'.format(epoch+1, epochs, loss, MMSELoss, MMDLoss, KLDivLoss))
 
     return train_loss, train_loss_mmse, train_loss_mmd, train_loss_kld
 
