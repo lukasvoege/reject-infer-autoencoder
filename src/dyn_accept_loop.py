@@ -13,8 +13,6 @@ import torch
 import helper as h
 import autoencoder as aenc
 
-import matplotlib.pyplot as plt
-
 
 class Simulate_acceptance_loop():
 
