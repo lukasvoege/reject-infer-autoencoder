@@ -19,7 +19,6 @@ class Simulate_acceptance_loop():
     def __init__(self, dataset_name: str, model, model_fit_split: float, holdout_test_split: float, n_loops: int, enc_features: bool = False, encoder: aenc.Autoencoder = None, rej_inf = None, incl_rejected: bool = False):
         self.n_loops = n_loops
         self.rej_inf = rej_inf
-        self.incl_rejected = incl_rejected
 
         # custom Transformer, that standard scales and then encodes the data with Autoencoder
         def std_enco(x):
@@ -81,13 +80,6 @@ class Simulate_acceptance_loop():
         self.oracle_all_train_X = X_model_fit
         self.oracle_all_train_y = y_model_fit
 
-        # store an additional accepted array in case this is needed for reject inference
-        predicted_proba = self.model.predict_proba(X_model_fit_trans)[:,1]
-        threshold = sorted(predicted_proba)[floor(len(predicted_proba)*0.3)] # accept top n% of aplicants
-        if threshold == 0.0: threshold = 0.0001 # needed to allow for pure Tree Classifier Leafs
-        predicted_abs = np.where(predicted_proba < threshold, 0, 1)
-        self.accepted = [True if x == 0 else False for x in predicted_abs]
-
         self.info = f'''
         Data SPLIT ({dataset_name}):\n
         Total rows: {complete_X.shape[0]}, Total columns: {complete_X.shape[1]}\n
@@ -126,28 +118,21 @@ class Simulate_acceptance_loop():
 
             # 3. add accepted data points to all available training data
             accepted = [True if x == 0 else False for x in predicted_abs]
-            if(self.incl_rejected):
-                self.accepted.extend(accepted)
-                self.all_train_X = pd.concat([self.all_train_X, X], ignore_index=True)
-                self.all_train_y = pd.concat([self.all_train_y, y], ignore_index=True)
-            else:
-                self.all_train_X = pd.concat([self.all_train_X, X[accepted]], ignore_index=True)
-                self.all_train_y = pd.concat([self.all_train_y, y[accepted]], ignore_index=True)
+            
+            self.all_train_X = pd.concat([self.all_train_X, X[accepted]], ignore_index=True)
+            self.all_train_y = pd.concat([self.all_train_y, y[accepted]], ignore_index=True)
 
             # 3.2 add same number of points (but random points - so no acceptance bias) to oracle model
-            if(not self.incl_rejected):
-                random.shuffle(accepted)
-                self.oracle_all_train_X = pd.concat([self.oracle_all_train_X, X[accepted]], ignore_index=True)
-                self.oracle_all_train_y = pd.concat([self.oracle_all_train_y, y[accepted]], ignore_index=True)
-            else:
-                self.oracle_all_train_X = pd.concat([self.oracle_all_train_X, X], ignore_index=True)
-                self.oracle_all_train_y = pd.concat([self.oracle_all_train_y, y], ignore_index=True)
+            random.shuffle(accepted)
+            self.oracle_all_train_X = pd.concat([self.oracle_all_train_X, X[accepted]], ignore_index=True)
+            self.oracle_all_train_y = pd.concat([self.oracle_all_train_y, y[accepted]], ignore_index=True)
 
             # verbose
             # print(f'Itteration: {year}) Accepted: {accepted.count(True)} | Denied: {accepted.count(False)} - New train set size: {self.all_train_X.shape}')
+            predicted_abs = np.where(predicted_proba < 0.5, 0, 1)
 
             # 4.1 save rolling_metrics for data of that year
-            metrics["model"]["rolling"]['roc_auc'].append(roc_auc_score(y, predicted_proba)) #### die dinger hier sind mit falschem threshold berechnet
+            metrics["model"]["rolling"]['roc_auc'].append(roc_auc_score(y, predicted_proba))
             metrics["model"]["rolling"]['accuracy'].append(accuracy_score(y, predicted_abs))
             metrics["model"]["rolling"]['f1'].append(f1_score(y, predicted_abs))
             metrics["model"]["rolling"]['precision'].append(precision_score(y, predicted_abs))
@@ -184,32 +169,10 @@ class Simulate_acceptance_loop():
             if(self.rej_inf is None):
                 self.model.fit(all_train_X_trans, self.all_train_y)
             else:
-                if(self.incl_rejected):
-                    self.rej_inf(self.model,all_train_X_trans, self.all_train_y, self.accepted)
-                else:
-                    self.rej_inf(self.model,all_train_X_trans, self.all_train_y)
+                self.rej_inf(self.model,all_train_X_trans, self.all_train_y)
                 
             self.oracle.fit(oracle_all_train_X_trans, self.oracle_all_train_y)
 
             yield year, accepted, all_train_X_trans.shape, metrics
 
         return metrics
-
-'''
-n_years = 40
-
-sim = Simulate_acceptance_loop("homecredit.csv", lgbm.LGBMClassifier(), 0.1, 0.1, n_years)
-results = sim.run()
-
-
-x = range(1, n_years + 1)
-
-plt.plot(x, results["model"]["holdout"]['roc_auc'], label = 'roc_auc-model')
-plt.plot(x, results["oracle"]["holdout"]['roc_auc'], label = 'roc_auc-oracle')
-#plt.plot(x, results["holdout"]['precision'], label = 'precision')
-#plt.plot(x, results["holdout"]['f1'], label = 'f1')
-#plt.plot(x, results["holdout"]['accuracy'], label = 'accuracy')
-plt.legend()
-plt.show()
-
-'''
