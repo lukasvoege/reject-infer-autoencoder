@@ -5,9 +5,20 @@ from sklearn.base import clone
 def augmentation(model, x,y, iterative: bool = False):
     mod = clone(model)
     mod.fit(x, y)
-    weights = 1 / mod.predict_proba(x)[:,1]
-    model.fit(x, y, weights)
-
+    prev_pred = mod.predict_proba(x)[:,0]
+    improv = 1
+    i = 0
+    if(iterative):
+        while(improv > 0.0001 and i < 1000):
+            weights = np.divide(1,prev_pred,out=np.ones_like(prev_pred)/0.000001,where=prev_pred!=0)
+            model.fit(x, y, weights)
+            pred = model.predict_proba(x)[:,0]
+            improv = sum((prev_pred - pred)**2)
+            prev_pred = pred
+            i =+ 1
+    else:
+        weights = np.divide(1,prev_pred,out=np.ones_like(prev_pred)/0.000001,where=prev_pred!=0)
+        model.fit(x, y, weights)
 
 def  EMsemisupervised(model, X, y, accepted):
     params = learn_params(X, accepted)
