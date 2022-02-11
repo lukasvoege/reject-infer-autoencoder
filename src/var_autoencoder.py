@@ -98,17 +98,21 @@ def train_var(net, trainloader, epochs, learningrate, lossFuncWeights):
             #enc_bad = enc_bad[:min([len(enc_good),len(enc_bad)])]
 
             # calculate criterions only if they influence the overall loss
-            ReconLoss = recon_crit(outputs, data_x)                                      #                     if lossFuncWeights[0] > 0.0 else torch.zeros(1)
-            MissLoss = miss_crit(MN_dist.log_prob(sample), MN_normal.log_prob(sample)) #* 1000000   if lossFuncWeights[1] > 0.0 else torch.zeros(1)
+            ReconLoss = recon_crit(outputs, data_x) if lossFuncWeights[0] > 0.0 else torch.zeros(1)
+            MissLoss = miss_crit(MN_dist.log_prob(sample), MN_normal.log_prob(sample)) if lossFuncWeights[1] > 0.0 else torch.zeros(1)
             #MMDLoss = criterion3(enc_good,enc_bad) * 10                                                     if lossFuncWeights[2] > 0.0 else torch.zeros(1)
 
-            loss = ReconLoss + MissLoss #lossFuncWeights[0] * ReconLoss + lossFuncWeights[1] * MissLoss
+            sum_loss = ReconLoss.item() + MissLoss.item()
+            ReconLoss = sum_loss / ReconLoss.item() * ReconLoss if lossFuncWeights[0] > 0.0 else torch.zeros(1)
+            MissLoss = sum_loss / MissLoss.item() * MissLoss if lossFuncWeights[1] > 0.0 else torch.zeros(1)
+
+            loss = lossFuncWeights[0] * ReconLoss + lossFuncWeights[1] * MissLoss
 
             loss.backward()
             optimizer.step()
             running_loss += loss.item()
-            running_loss_recon += ReconLoss.item()
-            running_loss_miss += MissLoss.item()
+            running_loss_recon += lossFuncWeights[0] *  ReconLoss.item()
+            running_loss_miss += lossFuncWeights[1] * MissLoss.item()
 
         loss = running_loss / len(trainloader)
         ReconLoss = running_loss_recon / len(trainloader)
@@ -119,7 +123,7 @@ def train_var(net, trainloader, epochs, learningrate, lossFuncWeights):
         
         #print('Epoch {} of {}, Train Loss: {:.4f} (MMSE: {:.4f} | MMD: {:.4f} | KLD: {:.4f})'.format(epoch+1, epochs, loss, MMSELoss, MMDLoss, KLDivLoss))
 
-    return train_loss, train_loss_recon, train_loss_miss
+    return train_loss, train_loss_recon, train_loss_miss, 0
 
 
 
@@ -163,7 +167,7 @@ def train(net, trainloader, epochs, learningrate, lossFuncWeights):
             # calculate criterions only if they influence the overall loss
             MMSELoss = criterion(outputs, data_x)                                                           if lossFuncWeights[0] > 0.0 else torch.zeros(1)
             KLDivLoss = criterion2(MN_dist_bad.log_prob(sample), MN_dist_good.log_prob(sample)) * 1000000   if lossFuncWeights[1] > 0.0 else torch.zeros(1)
-            #MMDLoss = criterion3(enc_good,enc_bad) * 10                                                     if lossFuncWeights[2] > 0.0 else torch.zeros(1)
+            MMDLoss = criterion3(enc_good,enc_bad) * 10                                                     if lossFuncWeights[2] > 0.0 else torch.zeros(1)
 
             loss = lossFuncWeights[0] * MMSELoss + lossFuncWeights[1] * KLDivLoss + lossFuncWeights[2] * MMDLoss
 

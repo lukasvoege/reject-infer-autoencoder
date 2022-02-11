@@ -101,14 +101,18 @@ def train(net, trainloader, epochs, learningrate, lossFuncWeights):
             KLDivLoss = criterion2(MN_dist_bad.log_prob(sample), MN_dist_good.log_prob(sample))   if lossFuncWeights[1] > 0.0 else torch.zeros(1)
             MMDLoss = criterion3(enc_good,enc_bad) * 10                                                     if lossFuncWeights[2] > 0.0 else torch.zeros(1)
 
+            sum_loss = MMSELoss.item() + KLDivLoss.item() + MMDLoss.item()
+            MMSELoss = sum_loss * MMSELoss / MMSELoss.item() 
+            KLDivLoss = sum_loss * KLDivLoss / KLDivLoss.item()
+
             loss = lossFuncWeights[0] * MMSELoss + lossFuncWeights[1] * KLDivLoss + lossFuncWeights[2] * MMDLoss
 
             loss.backward()
             optimizer.step()
             running_loss += loss.item()
-            running_loss_mmse += MMSELoss.item()
-            running_loss_mmd += MMDLoss.item()
-            running_loss_kld += KLDivLoss.item()
+            running_loss_mmse += lossFuncWeights[0] * MMSELoss.item()
+            running_loss_mmd += lossFuncWeights[2] * MMDLoss.item()
+            running_loss_kld += lossFuncWeights[1] * KLDivLoss.item()
 
         loss = running_loss / len(trainloader)
         MMSELoss = running_loss_mmse / len(trainloader)
