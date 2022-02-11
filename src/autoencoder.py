@@ -130,7 +130,7 @@ def load_data_to_tensor(dataset_name):
     complete_data['BAD'] = np.where(complete_data['BAD'] == 'BAD', 1, 0).astype(np.int64)
 
     # We down sample the GOOD datapoints to even out the imbalance in the data set
-    complete_data = pd.concat([complete_data[complete_data['BAD'] == 0].sample(complete_data['BAD'].value_counts()[1]), complete_data[complete_data['BAD'] == 1]])
+    complete_data = pd.concat([complete_data[complete_data['BAD'] == 0].sample(complete_data['BAD'].value_counts()[1],random_state=37841), complete_data[complete_data['BAD'] == 1]])
 
     obj_cols = complete_data.select_dtypes('object').columns
     complete_data[obj_cols] = complete_data[obj_cols].astype('category')
