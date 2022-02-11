@@ -6,6 +6,10 @@ Information Systems Seminar Group 1
 - MMD bringt 0, verschlechtert situation nur
 - KLVDiv funktioniert, sorgt für weniger sampling bias
 
+### Ideas why weighting has no effect at all:
+- Balancing the autoencoder train set does the main trick already
+- KLDiv loss diverges after 1 itteration, making all subsequent weighting useless
+
 # Ideas 
 - streamlit
 --> options for different metrics
