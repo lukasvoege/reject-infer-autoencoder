@@ -98,7 +98,7 @@ def train(net, trainloader, epochs, learningrate, lossFuncWeights):
 
             # calculate criterions only if they influence the overall loss
             MMSELoss = criterion(outputs, data_x)                                                           if lossFuncWeights[0] > 0.0 else torch.zeros(1)
-            KLDivLoss = criterion2(MN_dist_bad.log_prob(sample), MN_dist_good.log_prob(sample)) * 1000000   if lossFuncWeights[1] > 0.0 else torch.zeros(1)
+            KLDivLoss = criterion2(MN_dist_bad.log_prob(sample), MN_dist_good.log_prob(sample))   if lossFuncWeights[1] > 0.0 else torch.zeros(1)
             MMDLoss = criterion3(enc_good,enc_bad) * 10                                                     if lossFuncWeights[2] > 0.0 else torch.zeros(1)
 
             loss = lossFuncWeights[0] * MMSELoss + lossFuncWeights[1] * KLDivLoss + lossFuncWeights[2] * MMDLoss
