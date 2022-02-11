@@ -129,11 +129,8 @@ def load_data_to_tensor(dataset_name):
     complete_data = pd.read_csv(f'../prepared_data/{dataset_name}', sep=',')
     complete_data['BAD'] = np.where(complete_data['BAD'] == 'BAD', 1, 0).astype(np.int64)
 
-    #print(complete_data.shape)
-
+    # We down sample the GOOD datapoints to even out the imbalance in the data set
     complete_data = pd.concat([complete_data[complete_data['BAD'] == 0].sample(complete_data['BAD'].value_counts()[1]), complete_data[complete_data['BAD'] == 1]])
-
-    #print(complete_data.shape)
 
     obj_cols = complete_data.select_dtypes('object').columns
     complete_data[obj_cols] = complete_data[obj_cols].astype('category')
@@ -146,7 +143,6 @@ def load_data_to_tensor(dataset_name):
         complete_data[col] = complete_data[col].astype('float64')
 
     ###### TRAIN ENCODER ON SUBSET OF THE DATA ########################
-
     #complete_data = complete_data[complete_data['BAD'] == 0]    # Only on BAD (1) or GOOD (0)
     #print(f'Shape of Autoencoder training data: {complete_data.shape}')
     ###################################################################
@@ -161,5 +157,4 @@ def load_data_to_tensor(dataset_name):
     standardizer = StandardScaler()
     x_stand = standardizer.fit_transform(x_np)
 
-    # we actually dont need train or test splits
     return torch.from_numpy(x_stand), torch.from_numpy(y_np)
