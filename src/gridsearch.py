@@ -12,9 +12,6 @@ importlib.reload(h)
 import matplotlib.pyplot as plt
 
 import lightgbm as lgbm
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.linear_model import LogisticRegression
-import torch
 
 import numpy as np
 
@@ -28,11 +25,12 @@ import importlib
 importlib.reload(aenc)
 importlib.reload(vaenc)
 
-from IPython import display
+import timeit
+
 
 
 n_years = 20
-model = lgbm.LGBMClassifier() # DecisionTreeClassifier(min_samples_leaf=40) LogisticRegression(max_iter=400)
+model = lgbm.LGBMClassifier(random_state=1234) # DecisionTreeClassifier(min_samples_leaf=40) LogisticRegression(max_iter=400)
 datasetname = "gmsc.csv"
 
 ## ------------------------------------------------------------
@@ -57,9 +55,9 @@ print(f'Baseline Sampling Bias: {round(baseline_bias, 5)}\nBaseline ROC-AUC: {ro
 ## Loop through Autoencoder training and testing for a parameter
 ## -----------------------------------------------------------------------
 
-weight_test = np.array(range(1, 10, 4)) / 10
-epochs_test = [1] + list(range(1, 3, 2))
-shape_test = np.array(range(4, 10, 5))
+weight_test = np.array(range(0, 11, 1)) / 10
+epochs_test = [1] + list(range(1, 7, 1))
+shape_test = np.array(range(4, 40, 3))
 BATCH_SIZE = 2000
 #EPOCHS = 10
 LR = 1e-3
@@ -75,6 +73,9 @@ for weight in weight_test:
     sampling_bias[weight] = dict()
     roc_auc[weight] = dict()
     for layer in shape_test:
+
+        start = timeit.default_timer()
+        
         # Train Autoencoder
         LOSSFUNCWEIGHTS = [weight, 1 - weight, 0.0]  #[MMSE, KLDiv, MMD]
 
@@ -101,12 +102,11 @@ for weight in weight_test:
 
             # Simulate on encoded Data to measure sampling bias
 
-            sim = dal.Simulate_acceptance_loop(datasetname, model, 0.1, 0.1, n_years, enc_features=True, encoder=net3)#, rej_inf=rinf.EMsemisupervised)
+            sim = dal.Simulate_acceptance_loop(datasetname, model, 0.1, 0.1, n_years, enc_features=True, encoder=net3)
             results_generator = sim.run()
 
             metrics7 = None
             for iteration in results_generator:
-                #print(f'Itteration: {iteration[0]}) Accepted: {iteration[1].count(True)} | Denied: {iteration[1].count(False)} - New train set size: {iteration[2]}')
                 metrics7 = iteration[3]
 
 
@@ -119,27 +119,10 @@ for weight in weight_test:
             print(f'PARAM: W({weight}), L({layer}), E({prev_ep + 2**EPOCHS}) | Sampling Bias: {round(sampling_bias[weight][layer][-1], 5)} // ROC-AUC: {round(roc_auc[weight][layer][-1], 5)}')
 
             prev_ep += 2**EPOCHS
-
-        ## Update Plots after all EPOCHS are trained for a parameter combi
-        epochs_values = np.cumsum(2**np.array(epochs_test))
-
-        w = len(sampling_bias) - 1
-        l = len(sampling_bias[weight]) - 1
         
-        axes[w][l].plot(epochs_values, roc_auc[weight][layer], label = 'roc_auc') 
-        axes[w][l].axhline(y = baseline_roc_auc, color = 'r', label = 'baseline roc-auc')
-        axes[w][l].set_ylabel(f'Weight MMSE {weight_test[w]}\n roc auc') if l == 0 else axes[w][l].set_ylabel('roc auc')
+        stop = timeit.default_timer()
 
-        if w == 0: axes[w][l].set_title(f'{shape_test[l]} Features in Latent Layers')
-
-        axes[w][l].set_xlabel("epochs trained")
-        axes[w][l].set_ylim([0.5, 1.0])
-        fig.tight_layout()
-
-        display.clear_output(wait=True)
-        display.display(fig)
-
-        print("Saving current results...")
+        print(f'Saving current results... - Last iteration took {stop - start} sec.')
         pickle.dump(roc_auc, open('roc-auc_grid-result.p', 'wb'))
         pickle.dump(roc_auc_flat, open('roc-auc-flat_grid-result.p', 'wb'))
 
