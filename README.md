@@ -25,3 +25,7 @@ Information Systems Seminar Group 1
 - Andere Methoden scouten / vllt. implementieren / testen
 - Simulation mal mit Encodeten Daten probieren
 - Folien bauen
+
+
+user: bernd
+Pw:BerndStromberg1!

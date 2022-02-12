@@ -104,6 +104,7 @@ def train(net, trainloader, epochs, learningrate, lossFuncWeights, verbose = Tru
             sum_loss = MMSELoss.item() + KLDivLoss.item() + MMDLoss.item()
             MMSELoss = sum_loss * MMSELoss / MMSELoss.item() 
             KLDivLoss = sum_loss * KLDivLoss / KLDivLoss.item()
+            MMDLoss = sum_loss * MMDLoss / MMDLoss.item()
 
             loss = lossFuncWeights[0] * MMSELoss + lossFuncWeights[1] * KLDivLoss + lossFuncWeights[2] * MMDLoss
 
