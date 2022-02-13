@@ -169,7 +169,7 @@ class Simulate_acceptance_loop():
             if(self.rej_inf is None):
                 self.model.fit(all_train_X_trans, self.all_train_y)
             else:
-                self.rej_inf(self.model,all_train_X_trans, self.all_train_y)
+                self.rej_inf.fit(self.model,all_train_X_trans, self.all_train_y)
                 
             self.oracle.fit(oracle_all_train_X_trans, self.oracle_all_train_y)
 
