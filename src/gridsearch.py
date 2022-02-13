@@ -8,15 +8,8 @@ import reject_inference as rinf
 importlib.reload(rinf)
 import helper as h
 importlib.reload(h)
-
-import matplotlib.pyplot as plt
-
 import lightgbm as lgbm
-
 import numpy as np
-
-import lightgbm as lgbm
-
 import pickle
 
 import autoencoder as aenc
@@ -55,11 +48,10 @@ print(f'Baseline Sampling Bias: {round(baseline_bias, 5)}\nBaseline ROC-AUC: {ro
 ## Loop through Autoencoder training and testing for a parameter
 ## -----------------------------------------------------------------------
 
-weight_test = np.array(range(0, 11, 1)) / 10
-epochs_test = [1] + list(range(1, 7, 1))
-shape_test = np.array(range(4, 40, 3))
+weight_test = np.array(range(0, 11, 1)) / 10 
+epochs_test = [1] + list(range(1, 7, 1))    
+shape_test = np.array(range(4, 40, 3))      
 BATCH_SIZE = 2000
-#EPOCHS = 10
 LR = 1e-3
 
 sampling_bias = dict()
@@ -67,7 +59,6 @@ sampling_bias_flat = []
 roc_auc = dict()
 roc_auc_flat = []
 
-fig, axes = plt.subplots(nrows=len(weight_test), ncols=len(shape_test), figsize=(40, 20))
 
 for weight in weight_test:
     sampling_bias[weight] = dict()
@@ -87,9 +78,8 @@ for weight in weight_test:
             drop_last=True
         )
 
-        shape = [dataset.x.shape[1], 45, layer, 45, dataset.x.shape[1]]  # define shape of Autoencoder PARAM = 25
+        shape = [dataset.x.shape[1], 45, layer, 45, dataset.x.shape[1]]  
         net3 = aenc.Autoencoder(shape)
-        #print(net)
         net3.to("cpu")
 
         sampling_bias[weight][layer] = []
@@ -129,4 +119,4 @@ for weight in weight_test:
         pickle.dump(sampling_bias, open('sampling-bias-result.p', 'wb'))
         pickle.dump(sampling_bias_flat, open('sampling-bias-flat-result.p', 'wb'))
 
-print("I am done ya selame!")
+print("I am done!")
