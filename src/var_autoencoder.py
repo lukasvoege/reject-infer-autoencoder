@@ -1,3 +1,4 @@
+from unittest import result
 import pandas as pd
 import numpy as np
 import torch
@@ -24,9 +25,9 @@ class CreditscoringDataset(Dataset):
 
 
 # Autoencoder
-class Autoencoder(nn.Module):
+class Var_Autoencoder(nn.Module):
     def __init__(self, shape):
-        super(Autoencoder, self).__init__()
+        super(Var_Autoencoder, self).__init__()
 
         if shape[0] != shape[-1]:
             print('Warning! First and last layer of encoder do not have the same size.')
@@ -42,16 +43,26 @@ class Autoencoder(nn.Module):
         for i in range(shape.index(min(shape)), len(shape) - 1):
             self.dec.append(nn.Linear(in_features = shape[i], out_features = shape[i + 1]))
 
+            
+        self.fc_mu = nn.Linear(min(shape),min(shape))
+        self.fc_var = nn.Linear(min(shape),min(shape))
+        self.decoder_input = nn.Linear(min(shape),min(shape))
+
     def forward(self, x):
-        x = self.decode(self.encode(x))
-        return x
+        _, mu, var = self.encode(x)
+        z = torch.randn_like(var**2) * var**2 + mu
+        return self.decode(z), x, mu, var
 
     def encode(self, x):
         for e in self.enc:
             x = torch.tanh(e(x))
-        return x
         
+        mu = self.fc_mu(x)
+        var = self.fc_var(x)
+        return x, mu, var
+            
     def decode(self, x):
+        x = self.decoder_input(x)
         for d in self.dec:
             x = torch.tanh(d(x))
         return x
@@ -76,23 +87,23 @@ def train_var(net, trainloader, epochs, learningrate, lossFuncWeights):
             optimizer.zero_grad()
 
             outputs = net(data_x)
-            encoded = net.encode(data_x)
+            _, mu, var = net.encode(data_x)
 
             # split encoded data into good and bad subsets
-            good = [True if x == 0 else False for x in data_y]
-            enc_good = encoded[good]
-            enc_bad = encoded[[not value for value in good]]
+            #good = [True if x == 0 else False for x in data_y]
+            #enc_good = encoded[good]
+            #enc_bad = encoded[[not value for value in good]]
             #print(f'Enc_good shape: {enc_good.shape} Enc_bad shape: {enc_bad.shape}')
 
             # build Multinormal Distributios from data for VarEncoder
-            MN_dist = dis.multivariate_normal.MultivariateNormal(torch.mean(encoded, dim=0), torch.corrcoef(torch.transpose(encoded, 0, 1)))
-            MN_normal = dis.multivariate_normal.MultivariateNormal(torch.zeros(encoded.shape[1]),torch.eye(encoded.shape[1]))
+            MN_dist = dis.multivariate_normal.MultivariateNormal(mu,torch.eye(len(mu)) * var)
+            MN_normal = dis.multivariate_normal.MultivariateNormal(len(mu)),torch.eye(len(mu))
 
             # build MultiNorm Distributions from subsets and create log_probs of enc_good for both distributions to compare with KLDIVLOSS
             #MN_dist_good = dis.multivariate_normal.MultivariateNormal(torch.mean(enc_good, dim=0), torch.corrcoef(torch.transpose(enc_good, 0, 1)))
             #MN_dist_bad = dis.multivariate_normal.MultivariateNormal(torch.mean(enc_bad, dim=0), torch.corrcoef(torch.transpose(enc_bad, 0, 1)))
 
-            sample = MN_dist.sample((1000,))
+            sample = MN_dist.sample((1,))
 
             #enc_good = enc_good[:min([len(enc_good),len(enc_bad)])]
             #enc_bad = enc_bad[:min([len(enc_good),len(enc_bad)])]
@@ -102,9 +113,9 @@ def train_var(net, trainloader, epochs, learningrate, lossFuncWeights):
             MissLoss = miss_crit(MN_dist.log_prob(sample), MN_normal.log_prob(sample)) if lossFuncWeights[1] > 0.0 else torch.zeros(1)
             #MMDLoss = criterion3(enc_good,enc_bad) * 10                                                     if lossFuncWeights[2] > 0.0 else torch.zeros(1)
 
-            sum_loss = ReconLoss.item() + MissLoss.item()
-            ReconLoss = sum_loss / ReconLoss.item() * ReconLoss if lossFuncWeights[0] > 0.0 else torch.zeros(1)
-            MissLoss = sum_loss / MissLoss.item() * MissLoss if lossFuncWeights[1] > 0.0 else torch.zeros(1)
+            #sum_loss = ReconLoss.item() + MissLoss.item()
+            #ReconLoss = sum_loss / ReconLoss.item() * ReconLoss if lossFuncWeights[0] > 0.0 else torch.zeros(1)
+            #MissLoss = sum_loss / MissLoss.item() * MissLoss if lossFuncWeights[1] > 0.0 else torch.zeros(1)
 
             loss = lossFuncWeights[0] * ReconLoss + lossFuncWeights[1] * MissLoss
 
@@ -123,7 +134,7 @@ def train_var(net, trainloader, epochs, learningrate, lossFuncWeights):
         
         #print('Epoch {} of {}, Train Loss: {:.4f} (MMSE: {:.4f} | MMD: {:.4f} | KLD: {:.4f})'.format(epoch+1, epochs, loss, MMSELoss, MMDLoss, KLDivLoss))
 
-    return train_loss, train_loss_recon, train_loss_miss, 0
+    return train_loss, train_loss_recon, train_loss_miss
 
 
 
