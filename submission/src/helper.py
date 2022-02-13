@@ -164,3 +164,10 @@ class filter_binary_target:
         den = (((self.df[feature] - mean_feature)**2).sum() * ((self.df[self.target] - mean_target)**2).sum()) ** .5
         rho = num/den
         return rho
+
+######################################################
+# Print with markdown in Jupyter Notebook
+######################################################
+from IPython.display import Markdown, display
+def printmd(string):
+    display(Markdown(string))

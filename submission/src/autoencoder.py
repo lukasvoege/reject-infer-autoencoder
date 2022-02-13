@@ -102,9 +102,9 @@ def train(net, trainloader, epochs, learningrate, lossFuncWeights, verbose = Tru
             MMDLoss = criterion3(enc_good,enc_bad) * 10                                                      if lossFuncWeights[2] > 0.0 else torch.zeros(1)
 
             sum_loss = MMSELoss.item() + KLDivLoss.item() + MMDLoss.item()
-            MMSELoss = sum_loss * MMSELoss / MMSELoss.item() 
-            KLDivLoss = sum_loss * KLDivLoss / KLDivLoss.item()
-            MMDLoss = sum_loss * MMDLoss / MMDLoss.item()
+            MMSELoss = sum_loss * MMSELoss / MMSELoss.item()    if lossFuncWeights[0] > 0.0 else torch.zeros(1)
+            KLDivLoss = sum_loss * KLDivLoss / KLDivLoss.item() if lossFuncWeights[1] > 0.0 else torch.zeros(1)
+            MMDLoss = sum_loss * MMDLoss / MMDLoss.item()       if lossFuncWeights[2] > 0.0 else torch.zeros(1)
 
             loss = lossFuncWeights[0] * MMSELoss + lossFuncWeights[1] * KLDivLoss + lossFuncWeights[2] * MMDLoss
 
