@@ -1,31 +1,6 @@
-# reject-infer-autoencoder
-Information Systems Seminar Group 1
+# Bias-Removing Autoencoder for Reject Inference
+Information Systems Seminar @ HU-Berlin
 
-# Notes
-- MMD Loss braucht große batch sizes, MMSE leider eher kleine
-- MMD bringt 0, verschlechtert situation nur
-- KLVDiv funktioniert, sorgt für weniger sampling bias
+Credit scoring models are trained on data from previously granted loan applications, where the borrowers' repayment behavior has been observed. This creates sampling bias: the model is trained on accepted cases only. The training data is not representative of the general population of borrowers, where the model is used to screen new applications. Reject inference comprises a set of techniques that aim at correcting the sampling bias by using data of rejected applications. 
 
-### Ideas why weighting has no effect at all:
-- Balancing the autoencoder train set does the main trick already
-- KLDiv loss diverges after 1 itteration, making all subsequent weighting useless
-
-# Ideas 
-- streamlit
---> options for different metrics
-- Categorical Features: WOE or OneHot before Autoencoder?
-
-
-
-# TO-DOs
-! --> Loss Function muss unbedingt irgendwie Accpets vs Rejects vergleichen, sonst machts kein Sinn alles
-
-- WOE encode alles categorical
-- Fix DecisonTree simulation Loop
-- Andere Methoden scouten / vllt. implementieren / testen
-- Simulation mal mit Encodeten Daten probieren
-- Folien bauen
-
-
-user: bernd
-Pw:BerndStromberg1!
+Some bias correction methods work by transforming the data used to train a scoring model such that the transformed data is less biased. One of the promising approaches to find a suitable data transformation is to use a deep autoencoder with a distribution mismatch penalty (Atan et al, 2018).
